@@ -21,18 +21,21 @@ logger := zlog.New()
 ```go
 logger.Debug("Hello, World!")
 logger.Info("Hello, World!")
-logger.Warn("Hello, World!", slog.String("foo", "bar"))
-logger.Error("Hello, World!", slog.String("foo", "bar"))
+logger.Warn("Hello, World!")
+logger.Error("Hello, World!")
 ```
 
 ## Example Usage
 Here's an example of how to use zlog to log different types of messages:
 
 ### Example 1
+#### Code
 ```go
 package main
 
 import (
+	"log/slog"
+
 	"github.com/jeffry-luqman/zlog"
 )
 
@@ -40,10 +43,13 @@ func main() {
 	logger := zlog.New()
 	logger.Debug("Hello, World!")
 	logger.Info("Hello, World!")
-	logger.Warn("Hello, World!", slog.String("foo", "bar"))
+	logger.Warn("Hello, World!", slog.String("foo", "bar"), slog.Bool("baz", true))
 	logger.Error("Hello, World!", slog.String("foo", "bar"))
 }
 ```
+
+#### Output
+![image](https://github.com/jeffry-luqman/zlog/assets/11884257/c09f486e-b359-448b-bf66-17e68012067c)
 
 ### Example 2
 #### Code
@@ -62,11 +68,12 @@ func main() {
 	zlog.HandlerOptions = &slog.HandlerOptions{Level: slog.LevelDebug}
 	zlog.FmtDuration = []int{zlog.FgMagenta, zlog.FmtItalic}
 	zlog.FmtPath = []int{zlog.FgHiCyan}
+	logger := zlog.New()
 
 	start := time.Now()
 	time.Sleep(200 * time.Millisecond)
 
-	zlog.New().Debug("heloo 1",
+	logger.Debug("heloo 1",
 		slog.Duration(zlog.KeyDuration, time.Now().Sub(start)),
 		slog.Int(zlog.KeyStatus, http.StatusOK),
 		slog.String(zlog.KeyMethod, http.MethodGet),
@@ -76,7 +83,7 @@ func main() {
 	)
 	time.Sleep(time.Millisecond)
 
-	zlog.New().Info("heloo 2",
+	logger.Info("heloo 2",
 		slog.Duration(zlog.KeyDuration, time.Now().Sub(start)),
 		slog.Int(zlog.KeyStatus, http.StatusCreated),
 		slog.String(zlog.KeyMethod, http.MethodPost),
@@ -86,7 +93,7 @@ func main() {
 	)
 	time.Sleep(time.Millisecond)
 
-	zlog.New().Warn("heloo 3",
+	logger.Warn("heloo 3",
 		slog.Duration(zlog.KeyDuration, time.Now().Sub(start)),
 		slog.Int(zlog.KeyStatus, http.StatusBadRequest),
 		slog.String(zlog.KeyMethod, http.MethodPut),
@@ -96,7 +103,7 @@ func main() {
 	)
 	time.Sleep(time.Millisecond)
 
-	zlog.New().Error("heloo 4",
+	logger.Error("heloo 4",
 		slog.Duration(zlog.KeyDuration, time.Now().Sub(start)),
 		slog.Int(zlog.KeyStatus, http.StatusInternalServerError),
 		slog.String(zlog.KeyMethod, http.MethodPatch),
@@ -106,7 +113,7 @@ func main() {
 	)
 	time.Sleep(time.Millisecond)
 
-	zlog.New().Info("heloo 5",
+	logger.Info("heloo 5",
 		slog.Duration(zlog.KeyDuration, time.Now().Sub(start)),
 		slog.Int(zlog.KeyStatus, http.StatusNoContent),
 		slog.String(zlog.KeyMethod, http.MethodDelete),
