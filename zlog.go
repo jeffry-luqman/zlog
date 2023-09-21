@@ -7,95 +7,47 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/mattn/go-colorable"
 )
 
-// Base attributes
-const (
-	FmtReset int = iota
-	FmtBold
-	FmtFaint
-	FmtItalic
-	FmtUnderline
-	FmtBlinkSlow
-	FmtBlinkRapid
-	FmtReverseVideo
-	FmtConcealed
-	FmtCrossedOut
-)
-
-// Foreground colors
-const (
-	FgBlack int = iota + 30
-	FgRed
-	FgGreen
-	FgYellow
-	FgBlue
-	FgMagenta
-	FgCyan
-	FgWhite
-)
-
-// Foreground Hi-Intensity colors
-const (
-	FgHiBlack int = iota + 90
-	FgHiRed
-	FgHiGreen
-	FgHiYellow
-	FgHiBlue
-	FgHiMagenta
-	FgHiCyan
-	FgHiWhite
-)
-
-// Background colors
-const (
-	BgBlack int = iota + 40
-	BgRed
-	BgGreen
-	BgYellow
-	BgBlue
-	BgMagenta
-	BgCyan
-	BgWhite
-)
-
-// Background Hi-Intensity colors
-const (
-	BgHiBlack int = iota + 100
-	BgHiRed
-	BgHiGreen
-	BgHiYellow
-	BgHiBlue
-	BgHiMagenta
-	BgHiCyan
-	BgHiWhite
-)
-
+// Base config for logger handler, you can override this with your own preferences.
 var (
+	// HandlerOptions contains options for the logger handler.
 	HandlerOptions *slog.HandlerOptions
-	TimeFormat     = "[15:04:05.000]"
+	// TimeFormat is the format used for logging timestamps.
+	TimeFormat = "[15:04:05.000]"
+)
 
+// Some keys with specific format, you can override this with your own preferences.
+var (
 	KeyStatus    = "status"
 	KeyDuration  = "duration"
 	KeyMethod    = "method"
 	KeyPath      = "path"
 	KeyDelimiter = "="
+)
 
+// Format attributes for some keys, you can override this with your own preferences.
+var (
 	FmtLevelDebug = []int{FgHiMagenta}
 	FmtLevelInfo  = []int{FgGreen}
-	FmtLevelWarn  = []int{FgYellow}
+	FmtLevelWarn  = []int{FgHiYellow}
 	FmtLevelError = []int{FgHiRed}
 
 	FmtStatus1XX     = []int{FgGreen}
 	FmtStatus2XX     = []int{FgGreen}
 	FmtStatus3XX     = []int{FgGreen}
-	FmtStatus4XX     = []int{FgYellow}
+	FmtStatus4XX     = []int{FgHiYellow}
 	FmtStatus5XX     = []int{FgHiRed}
 	FmtStatusUnknown = []int{FgHiRed}
+
+	FmtMethodGet    = []int{FgGreen}
+	FmtMethodPost   = []int{FgYellow}
+	FmtMethodPut    = []int{FgBlue}
+	FmtMethodPatch  = []int{FgCyan}
+	FmtMethodDelete = []int{FgRed}
+	FmtMethodOther  = []int{FgMagenta}
 
 	FmtTime     = []int{FgHiBlack}
 	FmtDuration = []int{FgCyan, FmtItalic}
@@ -112,6 +64,7 @@ var (
 	log *slog.Logger
 )
 
+// New creates a new logger instance and returns it.
 func New() *slog.Logger {
 	if w == nil {
 		w = colorable.NewColorableStdout()
@@ -122,21 +75,7 @@ func New() *slog.Logger {
 	return log
 }
 
-// Fmt format log with attribute
-//
-//	for example :
-//	  log.Fmt("text", fmtBold, FgRed)
-//
-//	output (text with bold red foreground) :
-//	  \x1b[1;31mtext\x1b[0m
-func Fmt(s string, attribute ...int) string {
-	format := make([]string, len(attribute))
-	for i, v := range attribute {
-		format[i] = strconv.Itoa(v)
-	}
-	return "\x1b[" + strings.Join(format, ";") + "m" + s + "\x1b[0m"
-}
-
+// logHandler is a log handler that implements the slog.Handler interface.
 type logHandler struct {
 	sh slog.Handler
 }
@@ -195,17 +134,17 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 			method = a.Value.String()
 			switch method {
 			case http.MethodGet:
-				method = Fmt(fmt.Sprintf("%7s", method), FgGreen)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodGet...)
 			case http.MethodPost:
-				method = Fmt(fmt.Sprintf("%7s", method), FgYellow)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodPost...)
 			case http.MethodPut:
-				method = Fmt(fmt.Sprintf("%7s", method), FgBlue)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodPut...)
 			case http.MethodPatch:
-				method = Fmt(fmt.Sprintf("%7s", method), FgCyan)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodPatch...)
 			case http.MethodDelete:
-				method = Fmt(fmt.Sprintf("%7s", method), FgRed)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodDelete...)
 			default:
-				method = fmt.Sprintf("%7s", method)
+				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodOther...)
 			}
 		} else if a.Key == KeyPath {
 			path = a.Value.String()

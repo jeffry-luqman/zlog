@@ -1,6 +1,6 @@
 module github.com/jeffry-luqman/zlog
 
-go 1.21.1
+go 1.21
 
 require github.com/mattn/go-colorable v0.1.13
 
