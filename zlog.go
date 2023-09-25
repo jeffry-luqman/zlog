@@ -71,17 +71,17 @@ var (
 )
 
 var (
-	w   io.Writer
-	log *slog.Logger
+	Writer io.Writer
+	log    *slog.Logger
 )
 
 // New creates a new logger instance and returns it.
 func New() *slog.Logger {
-	if w == nil {
-		w = colorable.NewColorableStdout()
+	if Writer == nil {
+		Writer = colorable.NewColorableStdout()
 	}
 	if log == nil {
-		log = slog.New(&logHandler{sh: slog.NewTextHandler(w, HandlerOptions)})
+		log = slog.New(&logHandler{sh: slog.NewTextHandler(Writer, HandlerOptions)})
 	}
 	return log
 }
@@ -193,7 +193,7 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 		h.write(b, Fmt(a.Key, FmtAttrKey...), Fmt(KeyDelimiter, FmtAttrDelimiter...), Fmt(a.Value.String(), FmtAttrValue...), " ")
 	}
 	h.write(b, "\n")
-	_, err := b.WriteTo(w)
+	_, err := b.WriteTo(Writer)
 	return err
 }
 func (h *logHandler) write(b *bytes.Buffer, args ...string) {

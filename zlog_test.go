@@ -12,14 +12,14 @@ import (
 // This code is modified from https://github.com/golang/go/blob/54f78cf8f1b8deea787803aeff5fb6150d7fac8f/src/log/slog/logger_test.go#L27
 func TestZlog(t *testing.T) {
 	ctx := context.Background()
-	w = &bytes.Buffer{}
+	Writer = &bytes.Buffer{}
 	TimeFormat = "Z"
 
 	l := New()
 
 	check := func(want []byte) {
 		t.Helper()
-		x, ok := w.(*bytes.Buffer)
+		x, ok := Writer.(*bytes.Buffer)
 		if ok {
 			t.Helper()
 			got := x.Bytes()
@@ -106,7 +106,7 @@ func BenchmarkSlog(b *testing.B) {
 // This is a simple benchmark. See the benchmarks subdirectory for more extensive ones.
 // This code is modified from https://github.com/golang/go/blob/54f78cf8f1b8deea787803aeff5fb6150d7fac8f/src/log/slog/logger_test.go#L522
 func BenchmarkZlog(b *testing.B) {
-	w = io.Discard
+	Writer = io.Discard
 	ctx := context.Background()
 	l := New()
 	b.Run("no attrs", func(b *testing.B) {
