@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/mattn/go-colorable"
 )
@@ -26,6 +27,16 @@ var (
 	KeyMethod    = "method"
 	KeyPath      = "path"
 	KeyDelimiter = "="
+	FieldOrder   = []string{
+		slog.LevelKey,
+		slog.TimeKey,
+		KeyStatus,
+		KeyDuration,
+		KeyMethod,
+		KeyPath,
+		slog.SourceKey,
+		slog.MessageKey,
+	}
 )
 
 // Format attributes for some keys, you can override this with your own preferences.
@@ -90,25 +101,39 @@ func (h *logHandler) WithGroup(name string) slog.Handler {
 	return &logHandler{sh: h.sh.WithGroup(name)}
 }
 func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
+	attrs := []slog.Attr{}
+	fields := map[string]string{}
 	level := r.Level.String()
-	statusCode := ""
-	duration := ""
-	method := ""
-	path := ""
 	switch r.Level {
 	case slog.LevelDebug:
-		level = Fmt(fmt.Sprintf("%6s", level), FmtLevelDebug...)
+		level = Fmt(fmt.Sprintf("%-6s", level), FmtLevelDebug...)
 	case slog.LevelInfo:
-		level = Fmt(fmt.Sprintf("%6s", level), FmtLevelInfo...)
+		level = Fmt(fmt.Sprintf("%-6s", level), FmtLevelInfo...)
 	case slog.LevelWarn:
-		level = Fmt(fmt.Sprintf("%6s", level), FmtLevelWarn...)
+		level = Fmt(fmt.Sprintf("%-6s", level), FmtLevelWarn...)
 	case slog.LevelError:
-		level = Fmt(fmt.Sprintf("%6s", level), FmtLevelError...)
+		level = Fmt(fmt.Sprintf("%-6s", level), FmtLevelError...)
 	}
-	attrs := []slog.Attr{}
+	if slices.Contains(FieldOrder, slog.LevelKey) {
+		fields[slog.LevelKey] = level
+	} else {
+		attrs = append(attrs, slog.String(slog.LevelKey, level))
+	}
+	if slices.Contains(FieldOrder, slog.TimeKey) {
+		fields[slog.TimeKey] = Fmt(r.Time.Format(TimeFormat), FmtTime...)
+	} else {
+		attrs = append(attrs, slog.String(slog.TimeKey, Fmt(r.Time.Format(TimeFormat), FmtTime...)))
+	}
+	if slices.Contains(FieldOrder, slog.MessageKey) {
+		fields[slog.MessageKey] = Fmt(r.Message, FmtMessage...)
+	} else {
+		attrs = append(attrs, slog.String(slog.MessageKey, Fmt(r.Message, FmtMessage...)))
+	}
+	// fields[slog.SourceKey] = Fmt(r.Message, FmtMessage...) // todo
+
 	r.Attrs(func(a slog.Attr) bool {
-		if a.Key == KeyStatus {
-			statusCode = a.Value.String()
+		if a.Key == KeyStatus && slices.Contains(FieldOrder, a.Key) {
+			statusCode := a.Value.String()
 			if a.Value.Kind() == slog.KindInt64 {
 				code := a.Value.Int64()
 				if code >= http.StatusInternalServerError {
@@ -125,13 +150,15 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 					statusCode = Fmt(statusCode, FgGreen)
 				}
 			}
-		} else if a.Key == KeyDuration {
-			duration = a.Value.String()
+			fields[KeyStatus] = level
+		} else if a.Key == KeyDuration && slices.Contains(FieldOrder, a.Key) {
+			duration := a.Value.String()
 			if a.Value.Kind() == slog.KindDuration {
 				duration = a.Value.Duration().String()
 			}
-		} else if a.Key == KeyMethod {
-			method = a.Value.String()
+			fields[KeyDuration] = Fmt(fmt.Sprintf("%12s", duration), FmtDuration...)
+		} else if a.Key == KeyMethod && slices.Contains(FieldOrder, a.Key) {
+			method := a.Value.String()
 			switch method {
 			case http.MethodGet:
 				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodGet...)
@@ -146,8 +173,9 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 			default:
 				method = Fmt(fmt.Sprintf("%7s", method), FmtMethodOther...)
 			}
-		} else if a.Key == KeyPath {
-			path = a.Value.String()
+			fields[KeyMethod] = method
+		} else if a.Key == KeyPath && slices.Contains(FieldOrder, a.Key) {
+			fields[KeyPath] = a.Value.String()
 		} else {
 			attrs = append(attrs, a)
 		}
@@ -155,21 +183,12 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 	})
 
 	b := &bytes.Buffer{}
-	h.write(b, level, " ")
-	h.write(b, Fmt(r.Time.Format(TimeFormat), FmtTime...), " ")
-	if statusCode != "" {
-		h.write(b, statusCode, " ")
+	for _, key := range FieldOrder {
+		val, ok := fields[key]
+		if ok {
+			h.write(b, val, " ")
+		}
 	}
-	if duration != "" {
-		h.write(b, Fmt(fmt.Sprintf("%12s", duration), FmtDuration...), " ")
-	}
-	if method != "" {
-		h.write(b, method, " ")
-	}
-	if path != "" {
-		h.write(b, Fmt(path, FmtPath...), " ")
-	}
-	h.write(b, Fmt(r.Message, FmtMessage...), " ")
 	for _, a := range attrs {
 		h.write(b, Fmt(a.Key, FmtAttrKey...), Fmt(KeyDelimiter, FmtAttrDelimiter...), Fmt(a.Value.String(), FmtAttrValue...), " ")
 	}
