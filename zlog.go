@@ -150,7 +150,7 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 					statusCode = Fmt(statusCode, FgGreen)
 				}
 			}
-			fields[KeyStatus] = level
+			fields[KeyStatus] = statusCode
 		} else if a.Key == KeyDuration && slices.Contains(FieldOrder, a.Key) {
 			duration := a.Value.String()
 			if a.Value.Kind() == slog.KindDuration {
