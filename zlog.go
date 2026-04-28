@@ -88,17 +88,21 @@ func New() *slog.Logger {
 
 // logHandler is a log handler that implements the slog.Handler interface.
 type logHandler struct {
-	sh slog.Handler
+	sh    slog.Handler
+	attrs []slog.Attr
 }
 
 func (h *logHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.sh.Enabled(ctx, level)
 }
 func (h *logHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &logHandler{sh: h.sh.WithAttrs(attrs)}
+	newAttrs := make([]slog.Attr, len(h.attrs), len(h.attrs)+len(attrs))
+	copy(newAttrs, h.attrs)
+	newAttrs = append(newAttrs, attrs...)
+	return &logHandler{sh: h.sh.WithAttrs(attrs), attrs: newAttrs}
 }
 func (h *logHandler) WithGroup(name string) slog.Handler {
-	return &logHandler{sh: h.sh.WithGroup(name)}
+	return &logHandler{sh: h.sh.WithGroup(name), attrs: h.attrs}
 }
 func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 	attrs := []slog.Attr{}
@@ -131,7 +135,7 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 	}
 	// fields[slog.SourceKey] = Fmt(r.Message, FmtMessage...) // todo
 
-	r.Attrs(func(a slog.Attr) bool {
+	processAttr := func(a slog.Attr) bool {
 		if a.Key == KeyStatus && slices.Contains(FieldOrder, a.Key) {
 			statusCode := a.Value.String()
 			if a.Value.Kind() == slog.KindInt64 {
@@ -180,7 +184,12 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 			attrs = append(attrs, a)
 		}
 		return true
-	})
+	}
+
+	for _, a := range h.attrs {
+		processAttr(a)
+	}
+	r.Attrs(processAttr)
 
 	b := &bytes.Buffer{}
 	for _, key := range FieldOrder {

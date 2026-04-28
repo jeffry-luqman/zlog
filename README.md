@@ -25,6 +25,12 @@ logger.Warn("Hello, World!")
 logger.Error("Hello, World!")
 ```
 
+5. Add contextual attributes using `With`
+```go
+contextLogger := logger.With(slog.String("component", "database"))
+contextLogger.Info("Connection established")
+```
+
 ## Example Usage
 Here's an example of how to use zlog to log different types of messages:
 
