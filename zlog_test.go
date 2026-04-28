@@ -150,3 +150,20 @@ func BenchmarkZlog(b *testing.B) {
 		})
 	})
 }
+
+func TestZlogWithAttrs(t *testing.T) {
+	Writer = &bytes.Buffer{}
+	TimeFormat = "Z"
+
+	l := New().With(slog.String("test", "test_value"))
+
+	l.Info("msg", "a", 1)
+
+	x, ok := Writer.(*bytes.Buffer)
+	if ok {
+		got := x.Bytes()
+		if !bytes.Contains(got, []byte("test_value")) {
+			t.Errorf("expected test_value in output, got: %s", string(got))
+		}
+	}
+}
